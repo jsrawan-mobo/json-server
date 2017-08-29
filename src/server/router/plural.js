@@ -79,8 +79,8 @@ module.exports = (db, name, opts) => {
           _.has(arr[i], query) ||
           query === 'callback' ||
           query === '_' ||
-          /_lte$/.test(query) ||
-          /_gte$/.test(query) ||
+          /_lt?$/.test(query) ||
+          /_gt?$/.test(query) ||
           /_ne$/.test(query) ||
           /_like$/.test(query)
         )
@@ -118,7 +118,7 @@ module.exports = (db, name, opts) => {
           return arr
             .map(function(value) {
               const isDifferent = /_ne$/.test(key)
-              const isRange = /_lte$/.test(key) || /_gte$/.test(key)
+              const isRange = /_lt?$/.test(key) || /_gt?$/.test(key)
               const isLike = /_like$/.test(key)
               const path = key.replace(/(_lte|_gte|_ne|_like)$/, '')
               // get item value based on path
@@ -131,11 +131,20 @@ module.exports = (db, name, opts) => {
               }
 
               if (isRange) {
-                const isLowerThan = /_gte$/.test(key)
+                const isLowerThan = /_gt?$/.test(key)
+                const isExact = /_?te$/.test(key)
 
-                return isLowerThan
-                  ? value <= elementValue
-                  : value >= elementValue
+                var value = "";
+                if (isExact) {
+                    value = isLowerThan
+                      ? value <= elementValue
+                      : value >= elementValue
+                } else {
+                    value = isLowerThan
+                      ? value < elementValue
+                      : value > elementValue
+                }
+                return value;
               } else if (isDifferent) {
                 return value !== elementValue.toString()
               } else if (isLike) {
