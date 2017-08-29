@@ -73,8 +73,8 @@ module.exports = (db, name, opts) => {
           _.has(arr[i], query) ||
           query === 'callback' ||
           query === '_' ||
-          /_lte$/.test(query) ||
-          /_gte$/.test(query) ||
+          /_lt.?$/.test(query) ||
+          /_gt.?$/.test(query) ||
           /_ne$/.test(query) ||
           /_like$/.test(query)
         ) return
@@ -111,25 +111,42 @@ module.exports = (db, name, opts) => {
           return arr
             .map(function (value) {
               const isDifferent = /_ne$/.test(key)
-              const isRange = /_lte$/.test(key) || /_gte$/.test(key)
+              const isRange = /_lt.?$/.test(key) || /_gt.?$/.test(key)
               const isLike = /_like$/.test(key)
-              const path = key.replace(/(_lte|_gte|_ne|_like)$/, '')
+              const path = key.replace(/(_lte|_gte|_ne|_like|_lt|_gt)$/, '')
               // get item value based on path
               // i.e post.title -> 'foo'
               const elementValue = _.get(element, path)
+ 
+              //console.log("(first) isRange:", isRange, "key: ", key )
+
 
               // Prevent toString() failing on undefined or null values
               if (elementValue === undefined || elementValue === null) {
                 return
               }
+              //console.log("(second) isRange:", isRange, "elementValue: ", elementValue, "value: ", value)
+
+
 
               if (isRange) {
-                const isLowerThan = /_gte$/.test(key)
+               const isLowerThan = /_gt.?$/.test(key)
+               const isExact = /_[g|l]?te$/.test(key)
 
-                return isLowerThan
-                  ? value <= elementValue
-                  : value >= elementValue
-              } else if (isDifferent) {
+
+               //console.log("isLowerThanxx:", isLowerThan, " isExact:", isExact, " isRange:", isRange)
+
+               if (isExact) {
+                   return isLowerThan
+                     ? value <= elementValue
+                     : value >= elementValue
+
+               } else {
+                   return isLowerThan
+                     ? value < elementValue
+                     : value > elementValue
+               }
+             } else if (isDifferent) {
                 return value !== elementValue.toString()
               } else if (isLike) {
                 return new RegExp(value, 'i').test(elementValue.toString())
